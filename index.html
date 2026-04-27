@@ -365,10 +365,20 @@ function tryUrl(idx) {
       if (!results.data || results.data.length === 0) { showError(); return; }
 
       const raw = results.data;
+      // Normalize headers — remove BOM, trim spaces
+      const normalizedRaw = raw.map(row => {
+        const newRow = {};
+        Object.keys(row).forEach(k => {
+          const cleanKey = k.replace(/\uFEFF/g, '').trim();
+          newRow[cleanKey] = typeof row[k] === 'string' ? row[k].trim() : row[k];
+        });
+        return newRow;
+      });
+      console.log('Cabeçalhos recebidos:', Object.keys(normalizedRaw[0] || {}));
       document.getElementById('last-update').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR');
 
       // Normalise
-      const data = raw.map(r => {
+      const data = normalizedRaw.map(r => {
         const deploy = parseFloat(r['Valor de Deploy']) || 0;
         const face   = parseFloat(r['Valor de Face Atualizado']) || 0;
         const spread = parseFloat(r['Spread Atual']) || 0;
@@ -485,6 +495,7 @@ function buildResumo(data) {
   data.forEach(r => { faseCount[r.fase] = (faseCount[r.fase]||0)+1; });
   const faseSorted = Object.entries(faseCount).sort((a,b)=>b[1]-a[1]);
   const faseColors = [C.blue, C.orange, C.teal, C.muted, C.yellow, C.green, C.red];
+  if (!faseSorted.length) return;
   const maxFase = faseSorted[0][1];
   document.getElementById('barFase').innerHTML = faseSorted.map(([label,val],i)=>
     `<div class="mini-bar-row"><div class="mini-bar-label">${label}</div><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${val/maxFase*100}%;background:${faseColors[i%faseColors.length]}"></div></div><div class="mini-bar-val">${val}</div></div>`
