@@ -289,7 +289,8 @@ footer { position:relative; z-index:1; text-align:center; padding:18px; font-siz
 
 <script>
 // ── CONFIG ──
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/18r0A9-K982Q8xVlaY-qU7XaWjz-4fTlLK-qJxvxNEcI/export?format=csv&gid=0';
+const SHEET_ID = '18r0A9-K982Q8xVlaY-qU7XaWjz-4fTlLK-qJxvxNEcI';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
 // ── PALETA ──
 const C = { orange:'#e8922a', blue:'#2d6bb5', teal:'#2196a8', yellow:'#f5c842', green:'#3dba7e', red:'#e05555', muted:'#7b9ab8', grid:'rgba(255,255,255,0.06)', text:'#e8edf4' };
@@ -337,14 +338,29 @@ function pillClass(status) {
 function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
 // ── LOAD DATA ──
+const URLS_TO_TRY = [
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Processos`,
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=Processos`,
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
+];
+
 function loadData() {
   document.getElementById('loading').style.display = 'flex';
+  tryUrl(0);
+}
 
-  Papa.parse(SHEET_URL, {
+function tryUrl(idx) {
+  if (idx >= URLS_TO_TRY.length) {
+    document.getElementById('loading').style.display = 'none';
+    showError(); return;
+  }
+  Papa.parse(URLS_TO_TRY[idx], {
     download: true,
     header: true,
     skipEmptyLines: true,
     complete: function(results) {
+      const ok = results.data && results.data.length > 0 && Object.keys(results.data[0]).length > 4;
+      if (!ok) { tryUrl(idx + 1); return; }
       document.getElementById('loading').style.display = 'none';
       if (!results.data || results.data.length === 0) { showError(); return; }
 
@@ -398,7 +414,7 @@ function loadData() {
 
       buildAll(data);
     },
-    error: function() { document.getElementById('loading').style.display='none'; showError(); }
+    error: function() { tryUrl(idx + 1); }
   });
 }
 
